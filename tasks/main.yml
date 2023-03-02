@@ -1,0 +1,102 @@
+---
+- name: Install required packages
+  ansible.builtin.dnf:
+    name: "{{ ipsilon_packages }}"
+    state: installed
+  tags:
+    - packages
+
+- name: Initialize ipsilon if needed
+  ansible.builtin.command: >
+    ipsilon-server-install
+    --secure yes
+    --openid yes
+    --openidc yes
+    --saml2 yes
+    --ipa yes
+    --info-sssd yes
+    --form yes
+    --gssapi-httpd-keytab /etc/httpd.keytab
+    --admin-user admin
+    --hostname {{ idp_hostname }}
+  args:
+    creates: /etc/ipsilon/idp/ipsilon.conf
+  no_log: true
+  register: ipsilon_install
+  tags:
+    - init
+
+- name: Set booleans
+  ansible.posix.seboolean:
+    name: "{{ item }}"
+    state: true
+    persistent: true
+  loop: "{{ ipsilon_booleans }}"
+  tags:
+    - selinux
+
+- name: Branding ipsilon with logo
+  ansible.builtin.copy:
+    src: rocky_logo.png
+    dest: "{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  with_items:
+    - /usr/share/ipsilon/ui/img/brand-lg.png
+    - /usr/share/ipsilon/ui/img/brand.png
+
+- name: Distributing openidc genkey script
+  ansible.builtin.copy:
+    src: genkey.py
+    dest: /var/lib/ipsilon/idp/genkey.py
+    mode: '0755'
+    owner: ipsilon
+    group: ipsilon
+
+- name: Generate oidc token script
+  ansible.builtin.copy:
+    src: generate-oidc-token
+    dest: /var/lib/ipsilon/idp/generate-oidc-token
+    mode: '0755'
+    owner: ipsilon
+    group: ipsilon
+
+- name: Distribute ipsilon.conf
+  ansible.builtin.template:
+    src: "ipsilon.conf"
+    dest: /etc/ipsilon/idp/ipsilon.conf
+    owner: ipsilon
+    group: ipsilon
+    mode: 0600
+  tags:
+    - config
+  notify:
+    - restart_httpd
+
+- name: Distribute configuration.conf
+  ansible.builtin.template:
+    src: "configuration.conf"
+    dest: /etc/ipsilon/idp/configuration.conf
+    owner: ipsilon
+    group: ipsilon
+    mode: 0600
+  tags:
+    - config
+  notify:
+    - restart_httpd
+
+- name: Configure SSSD part 1
+  ansible.builtin.replace:
+    path: /etc/sssd/sssd.conf
+    regexp: ^ldap_user_extra_attrs = [\w,\s]+$
+    replace: ldap_user_extra_attrs = mail, street, locality, st, postalCode, telephoneNumber, givenname, sn, fasTimeZone, fasLocale, fasIRCNick, fasGPGKeyId, fasCreationTime, fasStatusNote, fasRHBZEmail, fasGitHubUsername, fasGitLabUsername, fasWebsiteURL, fasIsPrivate, ipaSshPubKey
+  notify: restart_sssd
+
+- name: Configure SSSD part 2
+  ansible.builtin.replace:
+    path: /etc/sssd/sssd.conf
+    regexp: ^user_attributes = [\w,\s]+$
+    replace: user_attributes = +mail, +street, +locality, +st, +postalCode, +telephoneNumber, +givenname, +sn, +fasTimeZone, +fasLocale, +fasIRCNick, +fasGPGKeyId, +fasCreationTime, +fasStatusNote, +fasRHBZEmail, +fasGitHubUsername, +fasGitLabUsername, +fasWebsiteURL, +fasIsPrivate, +ipaSshPubKey
+  notify: restart_sssd
+...

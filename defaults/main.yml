@@ -1,0 +1,53 @@
+---
+# Defaults variables for role ipsilon
+ipsilon_db_user: ipsilon
+ipsilon_db_password: ThisIsNotThePassword
+ipsilon_db_host: dbhost
+ipsilon_db_name: ipsilon_db
+idp_hostname: accounts.rockylinux.org
+
+# The list of ipsilon packages
+ipsilon_packages:
+  - ipsilon
+  - ipsilon-authform
+  - ipsilon-base
+  - ipsilon-filesystem
+  - ipsilon-infofas
+  - ipsilon-infosssd
+  - ipsilon-openid
+  - ipsilon-openidc
+  - ipsilon-saml2
+  - ipsilon-saml2-base
+  - ipsilon-tools-ipa
+  - python3-setuptools
+  - python3-freeipa
+  - httpd
+  - mod_ssl
+  - mod_auth_openidc
+  - mod_auth_gssapi
+  - git
+
+ipsilon_booleans:
+  - httpd_can_network_connect
+  - httpd_can_network_connect_db
+  - httpd_dbus_sssd
+  - httpd_tmp_exec
+  - httpd_mod_auth_patm
+
+ipsilon_openid_trusted_roots:
+  - https://git.rockylinux.org/
+  - https://vote.rockylinux.org/
+  - https://lists.resf.org/
+
+ipsilon_openidc_scopes:
+  - ipsilon
+  - rocky
+
+ipsilon_openidc_custom_scopes:
+  - rocky
+
+ipsilon_fas_username: userman
+ipsilon_fas_password: ThisIsNotThePassword
+ipsilon_oidc_salt: data
+ipsilon_saml2_salt: data
+...

@@ -1,0 +1,11 @@
+---
+# Defaults handlers for role ipsilon
+- name: restart_sssd
+  ansible.builtin.service:
+    name: sssd
+    state: restarted
+
+- name: reload_httpd
+  ansible.builtin.service:
+    name: httpd
+    state: reloaded
